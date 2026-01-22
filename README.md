@@ -64,7 +64,7 @@ sudo ./ddns-go -s install -l :10005
 
 <img width="925" height="411" alt="屏幕快照 2026-01-23 的 05 50 07 上午" src="https://github.com/user-attachments/assets/7153d810-638d-4aa0-b620-cb1369037120" />
 
-⚠️如后后续想修改访问端口可以使用以下指令
+⚠️如后后续想修改访问端口可以使用以下指令（可以不管）
 
 卸载服务
 ```
