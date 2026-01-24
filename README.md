@@ -128,3 +128,17 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 /root/cert/private.key
 ```
 # 大功告成
+### Telegram机器通知模版
+```
+https://api.telegram.org/bot机器人密钥/sendMessage
+```
+```
+{
+    "chat_id": "账户数字id",
+    "text": "🚨 IPv4 变动通知\n\n🌏 新 IP: #{ipv4Addr}\n🏠 域名: #{ipv4Domains}\n✅ 状态: #{ipv4Result}",
+    "parse_mode": "Markdown"
+}
+```
+```
+Content-Type: application/json
+```
