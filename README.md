@@ -128,7 +128,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 /root/cert/private.key
 ```
 # 大功告成
-### Telegram机器通知模版
+### Telegram机器人通知模版
 ```
 https://api.telegram.org/bot机器人密钥/sendMessage
 ```
