@@ -81,8 +81,7 @@ sudo ./ddns-go -s install -l :10005
 
 # 第5步 安装acme.sh
 ```
-curl https://get.acme.sh | sh
-source ~/.bashrc
+apt-get update -y && apt-get install -y cron curl socat && systemctl enable --now cron && curl https://get.acme.sh | sh && source ~/.bashrc
 ```
 ⚠️ 记得把邮箱改成你自己的（当然也可以不改）
 ```
