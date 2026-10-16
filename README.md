@@ -96,23 +96,42 @@ export CF_Email="你的CF登录邮箱"
 ```
 ~/.acme.sh/acme.sh --issue --dns dns_cf -d xxxxxxxx.com --server letsencrypt
 ```
-创建存放证书的文件夹
-```
-mkdir -p /root/cert
-```
-把证书和密钥移动到指定文件夹
-```
-~/.acme.sh/acme.sh --install-cert -d xxxxxxx.com --key-file /root/cert/private.key --fullchain-file /root/cert/cert.crt
-```
-赋予读取权限 (防止面板没权限读取)
-```
-chmod 755 /root/cert
-```
+证书申请成功后，先进行第6步安装3X-UI。**证书部署及续签后的重启回调必须等到 x-ui 服务安装完成后再配置**，否则首次执行重启命令可能失败。
+
 # 第6步 安装3X-UI面板
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 记得选自定义端口 选自己映射的端口或者vps商提供的端口
+
+### 部署SSL证书并配置自动续签
+确认3X-UI已安装成功且 `x-ui` 服务存在，再执行以下命令。**请将 `xxxxxxxx.com` 改成第5步申请证书的真实域名**：
+
+```bash
+mkdir -p /root/cert
+chmod 755 /root/cert
+
+~/.acme.sh/acme.sh --install-cert -d xxxxxxxx.com \
+  --key-file /root/cert/private.key \
+  --fullchain-file /root/cert/cert.crt \
+  --reloadcmd "systemctl restart x-ui"
+
+chmod 600 /root/cert/private.key
+chmod 644 /root/cert/cert.crt
+```
+
+`--install-cert` 会将证书部署到上述固定路径，并保存 `--reloadcmd`。acme.sh 的定时任务在后续证书成功续签后会自动更新文件、重启 `x-ui`，使面板加载新证书；**不需要另建一个每日强制续签脚本**。
+
+检查自动续签任务、已签发证书和当前服务状态：
+
+```bash
+crontab -l | grep acme.sh
+~/.acme.sh/acme.sh --list
+openssl x509 -in /root/cert/cert.crt -noout -dates
+systemctl is-active x-ui
+```
+
+以上命令用于核对配置，不会强制申请新证书。若已按旧教程部署过证书，只需要在3X-UI安装完毕后重新执行本节的 `--install-cert` 命令，即可补上续签后的重启回调。
 
 安装完成后通过ddns-go绑定域名加3x-ui自定义的端口访问
 
