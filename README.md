@@ -8,15 +8,12 @@
 
 [Web SSH](https://ssh.hax.co.id)
 
-#第1步 更新相关源和依赖
-```
-apt update -y
-```
-```
-apt install -y curl wget sudo unzip git
-```
-```
-apt install -y socat
+# 第1步 更新软件源并安装相关依赖
+
+Debian / Ubuntu 系统使用 root 用户执行以下**一条命令**，一次性安装 DDNS-GO、SSL 证书和后续操作所需的基础依赖：
+
+```bash
+apt-get update && apt-get install -y --no-install-recommends curl wget sudo unzip git socat ca-certificates openssl tar coreutils mawk cron
 ```
 
 # 第2步 
