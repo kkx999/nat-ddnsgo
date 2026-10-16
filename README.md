@@ -79,72 +79,69 @@ rm ~/.ddns_go_config.yaml
 sudo ./ddns-go -s install -l :10005
 ```
 
-# 第5步 安装acme.sh
-```
-apt-get update -y && apt-get install -y cron curl socat && systemctl enable --now cron && curl https://get.acme.sh | sh && source ~/.bashrc
-```
-⚠️ 记得把邮箱改成你自己的（当然也可以不改）
-```
-~/.acme.sh/acme.sh --register-account -m my@example.com
-```
-导入你Cloudflare生成Token和填你的Cloudflare登录邮箱
-```
-export CF_Token="这里填你的Token"
-export CF_Email="你的CF登录邮箱"
-```
-申请证书xxxxxxxx.com改完你ddns-go绑定的域名
-```
-~/.acme.sh/acme.sh --issue --dns dns_cf -d xxxxxxxx.com --server letsencrypt
-```
-证书申请成功后，先进行第6步安装3X-UI。**证书部署及续签后的重启回调必须等到 x-ui 服务安装完成后再配置**，否则首次执行重启命令可能失败。
+# 第5步 一键申请 SSL 证书
 
-# 第6步 安装3X-UI面板
-```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
-```
-记得选自定义端口 选自己映射的端口或者vps商提供的端口
+本仓库提供独立的 [nat-cert.sh](./nat-cert.sh) 脚本，用于 NAT VPS 通过 **Cloudflare DNS-01** 申请 Let's Encrypt 证书并配置自动续签；不需要开放公网 80 / 443 端口。
 
-### 部署SSL证书并配置自动续签
-确认3X-UI已安装成功且 `x-ui` 服务存在，再执行以下命令。**请将 `xxxxxxxx.com` 改成第5步申请证书的真实域名**：
+**适用系统：Debian / Ubuntu，使用 root 用户在交互式 SSH 终端运行。**
 
 ```bash
-mkdir -p /root/cert
-chmod 755 /root/cert
-
-~/.acme.sh/acme.sh --install-cert -d xxxxxxxx.com \
-  --key-file /root/cert/private.key \
-  --fullchain-file /root/cert/cert.crt \
-  --reloadcmd "systemctl restart x-ui"
-
-chmod 600 /root/cert/private.key
-chmod 644 /root/cert/cert.crt
+bash <(curl -fsSL https://raw.githubusercontent.com/kkx999/nat-ddnsgo/main/nat-cert.sh)
 ```
 
-`--install-cert` 会将证书部署到上述固定路径，并保存 `--reloadcmd`。acme.sh 的定时任务在后续证书成功续签后会自动更新文件、重启 `x-ui`，使面板加载新证书；**不需要另建一个每日强制续签脚本**。
+按提示输入：邮箱、要申请证书的域名（如 `nat.example.com`）、Cloudflare API Token（输入时不显示）。Token 应仅授权所需 DNS 区域及 DNS 编辑权限；不要将 Token 写到公开文件中。
 
-检查自动续签任务、已签发证书和当前服务状态：
+脚本自动完成依赖与 acme.sh 安装、cron 自动续签任务配置、DNS 验证、ECC 证书部署，并保存续签后重启 3X-UI 的回调。
+
+> **顺序说明：** 第 5 步运行时尚未安装 3X-UI，首次部署证书会正常跳过重启；第 6 步安装面板并设置证书路径后，后续成功续签会自动重启 `x-ui`。如果已经装好 3X-UI，脚本也可以单独使用。
+
+证书默认放在与域名对应的目录中（将 `nat.example.com` 替换为实际域名）：
+
+```text
+/root/cert/nat.example.com/fullchain.pem
+/root/cert/nat.example.com/privkey.pem
+```
+
+检查自动续签与证书信息（非强制续签）：
 
 ```bash
 crontab -l | grep acme.sh
-~/.acme.sh/acme.sh --list
-openssl x509 -in /root/cert/cert.crt -noout -dates
-systemctl is-active x-ui
+/root/.acme.sh/acme.sh --list
+openssl x509 -in /root/cert/nat.example.com/fullchain.pem -noout -dates
 ```
 
-以上命令用于核对配置，不会强制申请新证书。若已按旧教程部署过证书，只需要在3X-UI安装完毕后重新执行本节的 `--install-cert` 命令，即可补上续签后的重启回调。
+如果脚本提示签发失败，首先检查 Cloudflare Token 的权限与证书域名是否属于授权的 DNS 区域。脚本不会删除原有的 DDNS-GO 配置，也不修改系统的 apt 配置文件。
 
-安装完成后通过ddns-go绑定域名加3x-ui自定义的端口访问
+# 第6步 安装3X-UI面板
 
-登录成功后 修改密钥路径和公钥路径 然后重启使用https访问
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+```
 
-公钥路径
+安装时设置为 NAT VPS 已映射的可用服务端口，注意区分公网映射端口与 VPS 内部监听端口。
+
+面板安装完成后，在面板设置中填写第 5 步输出的**实际证书路径**和**私钥路径**，不要再使用旧教程的 `/root/cert/cert.crt`、`/root/cert/private.key`：
+
+证书路径：
+
+```text
+/root/cert/nat.example.com/fullchain.pem
 ```
-/root/cert/cert.crt
+
+私钥路径：
+
+```text
+/root/cert/nat.example.com/privkey.pem
 ```
-密钥路径
+
+保存设置后，重启面板使 HTTPS 配置生效：
+
+```bash
+systemctl restart x-ui
 ```
-/root/cert/private.key
-```
+
+随后使用已配置的域名和对应公网映射端口通过 HTTPS 访问面板。后续证书成功续签时，`nat-cert.sh` 注册的 acme.sh 回调会自动重启已安装的 3X-UI。
+
 # 大功告成
 ### Telegram机器人通知模版
 ```
