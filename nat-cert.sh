@@ -81,6 +81,9 @@ crontab -l 2>/dev/null | grep -Eq 'acme\.sh.*--cron' || fail '未检测到 acme.
 printf '\n[3/4] 使用 Cloudflare DNS 验证申请证书...\n'
 # Only this command inherits the API Token; acme.sh securely retains DNS renewal credentials.
 CF_Token="$CF_TOKEN" "$ACME" --issue --server letsencrypt --dns dns_cf -d "$DOMAIN" --keylength ec-256 || fail '证书申请失败；检查域名、Cloudflare Token 和 DNS 权限。'
+if [[ -f /root/.acme.sh/account.conf ]]; then
+    chmod 600 /root/.acme.sh/account.conf
+fi
 unset CF_TOKEN
 
 printf '\n[4/4] 安装证书并保存续签后的重启回调...\n'
